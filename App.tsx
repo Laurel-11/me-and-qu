@@ -3,9 +3,9 @@ import ParticleCanvas from './components/ParticleCanvas';
 import { ParticleSettings } from './types';
 import { MagicWandIcon, UploadIcon } from './components/Icons';
 
-// Use a reliable Unsplash URL by default to ensure the image shows up immediately.
-// If you have a local file, you can change this back to "tree.jpg" if your server serves it correctly.
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1543589077-47d81606c1bf?q=80&w=1920&auto=format&fit=crop";
+// Reverted to local file as requested. 
+// Ensure 'tree.jpg' exists in your public folder.
+const DEFAULT_IMAGE = "tree.jpg";
 
 const App: React.FC = () => {
   const [showLoveMessage, setShowLoveMessage] = useState(false);
@@ -51,7 +51,7 @@ const App: React.FC = () => {
       
       {/* Layer 0: Subtle Background for Main Screen (So it's not pitch black) */}
       <div 
-        className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${showLoveMessage ? 'opacity-0' : 'opacity-20'}`}
+        className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${showLoveMessage ? 'opacity-0' : 'opacity-40'}`}
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
       <div className={`absolute inset-0 bg-slate-950/80 pointer-events-none transition-opacity duration-1000 ${showLoveMessage ? 'opacity-0' : 'opacity-100'}`}></div>

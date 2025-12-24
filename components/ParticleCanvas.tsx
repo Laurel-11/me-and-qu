@@ -1,9 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { ParticleSettings } from '../types';
 
-// Fallback if public/tree.jpg is missing
-const FALLBACK_IMAGE_URL = "https://images.unsplash.com/photo-1543589077-47d81606c1bf?q=80&w=1200&auto=format&fit=crop";
-
 interface ParticleCanvasProps {
   settings: ParticleSettings;
   variant: 'generative' | 'image';
@@ -300,10 +297,8 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
        };
 
        img.onerror = () => {
-           if (activeImageSrc !== FALLBACK_IMAGE_URL) {
-               console.warn("Fallback to network image");
-               setActiveImageSrc(FALLBACK_IMAGE_URL);
-           }
+           console.error("Failed to load image:", activeImageSrc);
+           // Fallback logic removed as requested
        };
     };
 
