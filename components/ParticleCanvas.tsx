@@ -36,12 +36,16 @@ class Particle {
     this.originY = y;
     
     // Assign a random depth for 3D effect
-    // Positive Z is closer to camera, Negative Z is further
     this.z = (Math.random() - 0.5) * 2; 
 
-    // Explode effect: Start scattered
-    this.x = x + (Math.random() - 0.5) * window.innerWidth; 
-    this.y = y + (Math.random() - 0.5) * window.innerHeight;
+    // STABILITY FIX:
+    // Previously: window.innerWidth (Full screen explosion)
+    // Now: window.innerWidth * 0.15 (Localized spawn)
+    // Particles spawn much closer to their target. This prevents them from building up
+    // massive velocity as they fly in, stopping them from "overshooting" and jittering.
+    const scatterRange = Math.min(window.innerWidth, window.innerHeight) * 0.15;
+    this.x = x + (Math.random() - 0.5) * scatterRange; 
+    this.y = y + (Math.random() - 0.5) * scatterRange;
     
     this.vx = 0;
     this.vy = 0;
@@ -56,17 +60,13 @@ class Particle {
 
   update(settings: ParticleSettings, time: number, mouse: { x: number; y: number; active: boolean }, canvasWidth: number, canvasHeight: number) {
     // 1. 3D Parallax & Breathing
-    // Calculate Parallax Offset based on mouse position relative to center
-    // Closer particles (high Z) move more than far particles
     const centerX = canvasWidth / 2;
     const centerY = canvasHeight / 2;
     
-    // If mouse is active, use it for parallax, otherwise slight drift
+    // Smooth 3D parallax
     const parallaxX = mouse.active ? (mouse.x - centerX) * 0.05 * this.z : Math.sin(time * 0.01) * 10 * this.z;
     const parallaxY = mouse.active ? (mouse.y - centerY) * 0.05 * this.z : Math.cos(time * 0.01) * 10 * this.z;
 
-    // Breathing (Vertical/Horizontal tiny movements)
-    // Much subtler now to fix "blurry" issue
     const breathRange = settings.breathIntensity; 
     const breathX = Math.sin(time * 0.02 + this.randomPhase) * breathRange;
     const breathY = Math.cos(time * 0.02 + this.randomPhase) * breathRange;
@@ -74,7 +74,7 @@ class Particle {
     const targetX = this.originX + parallaxX + breathX;
     const targetY = this.originY + parallaxY + breathY;
 
-    // 2. Mouse Interaction (Repulsion) - "Force Field"
+    // 2. Mouse Interaction (Repulsion)
     let mouseForceX = 0;
     let mouseForceY = 0;
 
@@ -82,12 +82,12 @@ class Particle {
       const dx = mouse.x - this.x;
       const dy = mouse.y - this.y;
       const distance = Math.hypot(dx, dy);
-      const forceDistance = 100; // Smaller radius for more precision
+      const forceDistance = 80; // Slightly tighter interaction radius
 
       if (distance < forceDistance) {
         const force = (forceDistance - distance) / forceDistance;
         const angle = Math.atan2(dy, dx);
-        const repulsionStrength = 30; // Strong snap
+        const repulsionStrength = 20; 
 
         mouseForceX = -Math.cos(angle) * force * repulsionStrength;
         mouseForceY = -Math.sin(angle) * force * repulsionStrength;
@@ -95,29 +95,27 @@ class Particle {
     }
 
     // 3. Physics (Spring System)
-    // Hooke's Law: Force = -k * displacement
+    // Standard spring physics: Acceleration = Force / Mass
     this.vx += (targetX - this.x) * settings.ease;
     this.vy += (targetY - this.y) * settings.ease;
 
     this.vx += mouseForceX;
     this.vy += mouseForceY;
 
-    this.vx *= settings.friction; // Damping
+    // Friction application (Velocity Damping)
+    this.vx *= settings.friction; 
     this.vy *= settings.friction;
 
     this.x += this.vx;
     this.y += this.vy;
     
     // 4. Visual Depth Scaling
-    // Scale size based on Z-depth (Perspective)
-    // z = 1 (close) -> larger, z = -1 (far) -> smaller
     const depthScale = 1 + this.z * 0.3; 
     this.size = Math.max(0.1, this.baseSize * depthScale);
   }
 
   draw(ctx: CanvasRenderingContext2D) {
-    // 3D Lighting Effect:
-    // Modify opacity based on Z-depth. Far particles are dimmer.
+    // 3D Lighting Effect
     ctx.globalAlpha = Math.max(0.2, Math.min(1, 0.8 + this.z * 0.4));
     
     ctx.fillStyle = this.color;
@@ -125,7 +123,6 @@ class Particle {
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
     
-    // Ornaments get a special glow
     if (this.isOrnament) {
        ctx.shadowBlur = 5;
        ctx.shadowColor = this.color;
@@ -133,7 +130,7 @@ class Particle {
        ctx.shadowBlur = 0; 
     }
     
-    ctx.globalAlpha = 1.0; // Reset
+    ctx.globalAlpha = 1.0; 
   }
 }
 
@@ -143,7 +140,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
   const animationRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
   
-  // State for image handling fallback
   const [activeImageSrc, setActiveImageSrc] = useState(imageSrc || "tree.jpg");
 
   useEffect(() => {
@@ -163,8 +159,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-        // Only prevent default if we are interacting, to allow swipes if needed, 
-        // but generally for canvas art we prevent default.
         e.preventDefault(); 
         const rect = canvas.getBoundingClientRect();
         if (e.touches[0]) {
@@ -198,7 +192,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // Set canvas size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -210,7 +203,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
       const treeHeight = Math.min(canvas.height * 0.7, 600);
       const maxRadius = Math.min(canvas.width * 0.35, 250);
 
-      // 1. Tree Body (Reduced count for performance)
       const particleCount = 2000; 
       for (let i = 0; i < particleCount; i++) {
         const hPercent = 1 - Math.pow(Math.random(), 0.7); 
@@ -225,13 +217,12 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
            const r = 20 + Math.random() * 40;
            const g = 100 + Math.random() * 100;
            const b = 40 + Math.random() * 40;
-           const alpha = 0.8 + Math.random() * 0.2; // Higher alpha for clarity
+           const alpha = 0.8 + Math.random() * 0.2; 
            const color = `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${alpha})`;
            particles.push(new Particle(x, y, color, settings.size, false));
         }
       }
 
-      // 2. Ornaments
       const ornamentCount = 100;
       for (let i = 0; i < ornamentCount; i++) {
          const hPercent = Math.random() * 0.9;
@@ -245,7 +236,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
          particles.push(new Particle(x, y, color, settings.size * 1.5, true));
       }
 
-      // 3. Star
       const starCount = 60;
       const topY = cy - treeHeight;
       for (let i = 0; i < starCount; i++) {
@@ -268,24 +258,20 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
        img.src = activeImageSrc;
 
        img.onload = () => {
-          // Calculate scale to fit "contain"
           const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.8; 
           const w = img.width * scale;
           const h = img.height * scale;
           const offsetX = (canvas.width - w) / 2;
           const offsetY = (canvas.height - h) / 2;
 
-          // Draw image once to extract data
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, offsetX, offsetY, w, h);
           
           try {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear immediately
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const particles: Particle[] = [];
-            // PERFORMANCE: Use settings.gap accurately. 
-            // Ensure gap is at least 3 to prevent crashes on high-res screens.
             const gap = Math.max(3, Math.floor(settings.gap));
 
             for (let y = 0; y < canvas.height; y += gap) {
@@ -293,17 +279,15 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
                 const index = (y * canvas.width + x) * 4;
                 const alpha = imageData.data[index + 3];
 
-                // Skip transparent or near-transparent pixels
                 if (alpha > 20) { 
                   const r = imageData.data[index];
                   const g = imageData.data[index + 1];
                   const b = imageData.data[index + 2];
                   
-                  // Brightness calculation for "shininess"
                   const brightness = (r + g + b) / 3;
                   const isShiny = brightness > 230; 
                   
-                  const color = `rgb(${r}, ${g}, ${b})`; // No alpha here, handled in draw()
+                  const color = `rgb(${r}, ${g}, ${b})`;
                   
                   particles.push(new Particle(x, y, color, settings.size, isShiny));
                 }
@@ -324,10 +308,7 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
     };
 
     // --- EXECUTE ---
-    // Clear particles before switching to avoid visual noise during load
     particlesRef.current = [];
-    
-    // Short timeout to let the UI update before heavy processing
     const timer = setTimeout(() => {
         if (variant === 'generative') {
             initGenerativeTree();
@@ -339,7 +320,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
     const handleResize = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        // Debounce resize
         if (variant === 'generative') initGenerativeTree();
         else initFromImage();
     };
@@ -362,7 +342,6 @@ const ParticleCanvas: React.FC<ParticleCanvasProps> = ({ settings, variant, imag
     let time = 0;
 
     const animate = () => {
-      // Clear with trail effect - Darker background for better contrast
       ctx.fillStyle = 'rgba(2, 6, 23, 0.4)'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 

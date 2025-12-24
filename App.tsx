@@ -8,16 +8,14 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'intro' | 'image'>('intro');
   const [showControls, setShowControls] = useState(false);
   
-  // Performance & Visual Tuning:
-  // 1. gap: Increased to 5 to reduce total particle count (Fixes Lag).
-  // 2. friction: Reduced to 0.85 so particles stop moving faster (Fixes long jitter).
-  // 3. ease: Increased to 0.15 so particles snap back quickly (Fixes blurriness).
-  // 4. breathIntensity: Reduced to 0.5 for a stable image.
+  // Physics Tuning for Stability:
+  // 1. friction: Lowered to 0.80. This adds MORE "air resistance". Particles stop moving much faster.
+  // 2. ease: Increased to 0.20. This makes the "spring" stiffer. Particles snap back instantly without oscillating.
   const [settings, setSettings] = useState<ParticleSettings>({
     gap: 5,             
     size: 2.0,          
-    friction: 0.85,     
-    ease: 0.15,         
+    friction: 0.80,     
+    ease: 0.20,         
     breathIntensity: 0.5 
   });
 
