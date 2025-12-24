@@ -3,9 +3,13 @@ import ParticleCanvas from './components/ParticleCanvas';
 import { ParticleSettings } from './types';
 import { MagicWandIcon, UploadIcon } from './components/Icons';
 
+// Use a reliable Unsplash URL by default to ensure the image shows up immediately.
+// If you have a local file, you can change this back to "tree.jpg" if your server serves it correctly.
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1543589077-47d81606c1bf?q=80&w=1920&auto=format&fit=crop";
+
 const App: React.FC = () => {
   const [showLoveMessage, setShowLoveMessage] = useState(false);
-  const [bgImage, setBgImage] = useState<string>("tree.jpg");
+  const [bgImage, setBgImage] = useState<string>(DEFAULT_IMAGE);
   const [mode, setMode] = useState<'generative' | 'image'>('generative');
   
   // Settings for the particles
@@ -20,7 +24,9 @@ const App: React.FC = () => {
   const handleScreenClick = (e: React.MouseEvent) => {
     // Prevent triggering if clicking controls
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('label')) return;
-    setShowLoveMessage(true);
+    
+    // Toggle the state allows opening and closing the overlay
+    setShowLoveMessage(prev => !prev);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +49,13 @@ const App: React.FC = () => {
       onClick={handleScreenClick}
     >
       
+      {/* Layer 0: Subtle Background for Main Screen (So it's not pitch black) */}
+      <div 
+        className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${showLoveMessage ? 'opacity-0' : 'opacity-20'}`}
+        style={{ backgroundImage: `url('${bgImage}')` }}
+      />
+      <div className={`absolute inset-0 bg-slate-950/80 pointer-events-none transition-opacity duration-1000 ${showLoveMessage ? 'opacity-0' : 'opacity-100'}`}></div>
+
       {/* Layer 1: The Particle Canvas (Fades out when clicked) */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-[1500ms] ease-in-out ${showLoveMessage ? 'opacity-0' : 'opacity-100'}`}>
          <div className="w-full h-full">
@@ -90,13 +103,14 @@ const App: React.FC = () => {
       {/* Layer 3: Love Message Overlay (Fades in when clicked) */}
       <div className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-[2000ms] ease-out ${showLoveMessage ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
          
-         {/* Background Image: Highly blurred and darkened for text legibility */}
+         {/* Background Image: Reduced blur so the picture is visible */}
          <div 
             className="absolute inset-0 bg-cover bg-center transition-transform duration-[10s] ease-out"
             style={{ 
                 backgroundImage: `url('${bgImage}')`,
                 transform: showLoveMessage ? 'scale(1.1)' : 'scale(1.0)',
-                filter: 'blur(20px) brightness(0.5) saturate(1.1)'
+                // Reduced blur from 20px to 6px so the image is recognizable
+                filter: 'blur(6px) brightness(0.6) saturate(1.2)' 
             }}
          />
 
