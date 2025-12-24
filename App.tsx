@@ -8,12 +8,17 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'intro' | 'image'>('intro');
   const [showControls, setShowControls] = useState(false);
   
+  // Performance & Visual Tuning:
+  // 1. gap: Increased to 5 to reduce total particle count (Fixes Lag).
+  // 2. friction: Reduced to 0.85 so particles stop moving faster (Fixes long jitter).
+  // 3. ease: Increased to 0.15 so particles snap back quickly (Fixes blurriness).
+  // 4. breathIntensity: Reduced to 0.5 for a stable image.
   const [settings, setSettings] = useState<ParticleSettings>({
-    gap: 4,             // Density for image mode
-    size: 2.0,          // Base particle size
-    friction: 0.94,     // Physics friction
-    ease: 0.08,         // Return speed
-    breathIntensity: 3  // Breathing range
+    gap: 5,             
+    size: 2.0,          
+    friction: 0.85,     
+    ease: 0.15,         
+    breathIntensity: 0.5 
   });
 
   const handleScreenClick = () => {
